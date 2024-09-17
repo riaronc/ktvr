@@ -9,7 +9,8 @@ mod utils;
 mod errors;
 
 use actix_web::{web, App, HttpServer};
-use dotenv::dotenv;
+use dotenvy::dotenv;
+use dotenvy;
 use std::env;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -17,6 +18,31 @@ use redis::aio::MultiplexedConnection;
 use services::UrlService;
 use config::Config;
 use log::{info, error};
+
+
+async fn load_env() -> () {
+    dotenv().ok();
+
+    // Determine the current environment
+    let app_env = env::var("APP_ENV").unwrap_or_else(|_| "development".to_string());
+
+    // Load the appropriate .env file based on APP_ENV
+    match app_env.as_str() {
+        "production" => {
+            dotenvy::from_filename(".env.production").ok();
+        },
+        "development" => {
+            dotenvy::from_filename(".env.development").ok();
+        },
+        _ => {
+            dotenvy::from_filename(".env").ok();
+        }
+    }
+
+    // Initialize the logger
+    env_logger::init();
+}
+
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {

@@ -12,7 +12,7 @@ use crate::errors::ServiceError;
 #[derive(Clone)]
 pub struct UrlService {
     // Wrapped in Arc<Mutex<>> to allow safe concurrent mutable access
-    redis_conn: Arc<Mutex<MultiplexedConnection>>,
+    pub redis_conn: Arc<Mutex<MultiplexedConnection>>,
     key_prefix: String,
     expiration_seconds: usize,
 }

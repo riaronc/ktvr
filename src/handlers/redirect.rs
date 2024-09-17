@@ -2,24 +2,31 @@
 
 use actix_web::{web, HttpResponse, Responder};
 use crate::services::UrlService;
+use crate::errors::ServiceError;
+use log::{info, debug, error};
 
 pub async fn redirect(
-    redis: web::Data<UrlService>,
+    url_service: web::Data<UrlService>,
     path: web::Path<String>,
-) -> impl Responder {
+) -> Result<impl Responder, ServiceError> {
     let short_id = path.into_inner();
+    info!("Received redirect request for short ID: {}", short_id);
+    debug!("Looking up original URL for short ID: {}", short_id);
 
-    match redis.get_original_url(&short_id).await {
+    match url_service.get_original_url(&short_id).await {
         Ok(Some(original_url)) => {
-            // Redirect with 301 Moved Permanently
-            HttpResponse::MovedPermanently()
+            info!("Redirecting to original URL: {}", original_url);
+            Ok(HttpResponse::MovedPermanently()
                 .append_header(("Location", original_url))
-                .finish()
-        }
-        Ok(None) => HttpResponse::NotFound().body("Short URL not found"),
+                .finish())
+        },
+        Ok(None) => {
+            info!("Short ID not found: {}", short_id);
+            Ok(HttpResponse::NotFound().body("Short URL not found"))
+        },
         Err(e) => {
-            eprintln!("Error retrieving original URL: {}", e);
-            HttpResponse::InternalServerError().body("Internal Server Error")
+            error!("Error retrieving original URL for {}: {}", short_id, e);
+            Err(e)
         }
     }
 }
