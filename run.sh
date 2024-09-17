@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 # run.sh
 
 set -e
@@ -18,7 +18,7 @@ usage() {
 }
 
 # Parse arguments
-while [[ $# -gt 0 ]]
+while [ "$#" -gt 0 ]
 do
   key="$1"
 
@@ -44,10 +44,14 @@ do
 done
 
 # Validate ENV
-if [[ ! "$ENV" =~ ^(dev|stage|prod)$ ]]; then
-    echo "Invalid environment: $ENV" 1>&2
-    usage
-fi
+case "$ENV" in
+    dev|stage|prod)
+        ;;
+    *)
+        echo "Invalid environment: $ENV" 1>&2
+        usage
+        ;;
+esac
 
 # Determine env file
 ENV_FILE=".env.${ENV}"
@@ -67,7 +71,7 @@ else
 fi
 
 # If build is requested or init is being run
-if [ "$BUILD" = true ]; then
+if [ "$BUILD" = true ] || [ "$INIT" = true ]; then
     docker-compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up --build -d
 else
     docker-compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d
