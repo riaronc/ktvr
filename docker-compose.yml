@@ -1,0 +1,39 @@
+# docker-compose.yml
+
+version: '3.8'
+
+services:
+  ktvr-redis:
+    image: redis:7-alpine
+    container_name: ktvr-redis
+    ports:
+      - "127.0.0.1:${REDIS_HOST_PORT}:6379"
+    volumes:
+      - ktvr_redis_data:/data
+    networks:
+      ktvr_app_network:
+        ipv4_address: "${REDIS_HOST_IP}"
+
+  ktvr-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ktvr-api
+    ports:
+      - "127.0.0.1:${HOST_PORT}:${CONTAINER_PORT}"
+    env_file:
+      - .env.${APP_ENV}
+    depends_on:
+      - ktvr-redis
+    networks:
+      ktvr_app_network:
+        ipv4_address: "${APP_NETWORK_IP}"
+
+volumes:
+  ktvr_redis_data:
+    name: ktvr_redis_data
+
+networks:
+  ktvr_app_network:
+    external: true
+    name: ktvr_app_network

@@ -7,5 +7,5 @@ use log::debug;
 /// Responds with a 200 OK status and body "OK".
 pub async fn health_check() -> impl Responder {
     debug!("Health check: OK");
-    HttpResponse::Ok().body("OK")
+    HttpResponse::Ok().body("OK\n")
 }

@@ -28,11 +28,11 @@ async fn load_env() -> () {
 
     // Load the appropriate .env file based on APP_ENV
     match app_env.as_str() {
-        "production" => {
-            dotenvy::from_filename(".env.production").ok();
+        "prod" => {
+            dotenvy::from_filename(".env.prod").ok();
         },
-        "development" => {
-            dotenvy::from_filename(".env.development").ok();
+        "dev" => {
+            dotenvy::from_filename(".env.dev").ok();
         },
         _ => {
             dotenvy::from_filename(".env").ok();
@@ -79,7 +79,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(web::Data::new(config.host_url.clone()))
             .configure(routes::config)
     })
-        .bind("127.0.0.1:8080")?
+        .bind("0.0.0.0:8080")?
         .run()
         .await
 }
@@ -87,6 +87,7 @@ async fn main() -> std::io::Result<()> {
 /// Establishes a Redis connection using the provided Redis URL.
 /// Returns a MultiplexedConnection on success.
 async fn establish_redis_connection(redis_url: &str) -> redis::RedisResult<MultiplexedConnection> {
+    info!("Trying establish Redis by URL: {}",  redis_url);
     let client = redis::Client::open(redis_url)?;
     client.get_multiplexed_tokio_connection().await
 }
