@@ -1,7 +1,7 @@
 # Dockerfile
 
 # Stage 1: Build
-FROM rust:1.72.1 as builder
+FROM rust:1.81 as builder
 
 # Set environment variables
 ENV CARGO_HOME=/usr/local/cargo
