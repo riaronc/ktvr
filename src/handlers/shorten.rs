@@ -1,17 +1,21 @@
 // src/handlers/shorten.rs
 
-use actix_web::{web, HttpResponse, Responder};
+use actix_web::{web, HttpResponse, Responder, Error};
+use actix_web::web::Json;
 use crate::models::ShortenRequest;
 use crate::services::UrlService;
 use crate::models::ShortenResponse;
 use crate::errors::ServiceError;
 use log::{info, debug, error};
+use apistos::{api_operation, ApiComponent};
 
+
+#[api_operation(summary = "Shorten a URL")]
 pub async fn shorten_url(
     url_service: web::Data<UrlService>,
-    req: web::Json<ShortenRequest>,
+    req: Json<ShortenRequest>,
     host: web::Data<String>,
-) -> Result<impl Responder, ServiceError> {
+) -> Result<Json<ShortenResponse>, Error> {
     let original_url = req.url.trim();
     info!("Received request to shorten URL: {}", original_url);
 
@@ -22,12 +26,12 @@ pub async fn shorten_url(
             id
         },
         Err(e) => {
-            error!("Error shortening URL: {}", e);
-            return Err(e);
+            error!("{}", e);
+            return Err(Error::from(e))
         }
     };
     let short_url = format!("{}/{}", host.get_ref(), short_id);
     info!("Short URL created: {}", short_url);
 
-    Ok(HttpResponse::Ok().json(ShortenResponse { short_url }))
+    Ok(Json(ShortenResponse { short_url }))
 }

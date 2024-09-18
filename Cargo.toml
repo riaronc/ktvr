@@ -19,6 +19,9 @@ redis = { version = "0.21", features = ["aio", "tokio-comp"] }
 log = "0.4.22"
 env_logger = "0.11.5"
 
+#utoipa = { version = "3.2" }
+apistos = { version = "0.3.6", features = ["extras", "qs_query", "swagger-ui"] }
+schemars = { package = "apistos-schemars", version = "0.8" }
 
 [[bin]]
 name = "url_shortener"

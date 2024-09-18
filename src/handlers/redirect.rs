@@ -1,14 +1,16 @@
 // src/handlers/redirect.rs
 
-use actix_web::{web, HttpResponse, Responder};
+use actix_web::{web, HttpResponse, Responder, Error as ActixError};
 use crate::services::UrlService;
 use crate::errors::ServiceError;
 use log::{info, debug, error};
+use apistos::{api_operation, ApiComponent};
 
+#[api_operation(summary = "Redirect a given URL")]
 pub async fn redirect(
     url_service: web::Data<UrlService>,
     path: web::Path<String>,
-) -> Result<impl Responder, ServiceError> {
+) -> Result<HttpResponse, ActixError> {
     let short_id = path.into_inner();
     info!("Received redirect request for short ID: {}", short_id);
     debug!("Looking up original URL for short ID: {}", short_id);
@@ -26,7 +28,7 @@ pub async fn redirect(
         },
         Err(e) => {
             error!("Error retrieving original URL for {}: {}", short_id, e);
-            Err(e)
+            Err(ActixError::from(e))
         }
     }
 }

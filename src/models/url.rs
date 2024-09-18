@@ -2,9 +2,10 @@
 
 use serde::{Deserialize, Serialize};
 use url::Url;
-
+use schemars::JsonSchema;
+use apistos::ApiComponent;
 /// Request payload for shortening a URL.
-#[derive(Deserialize)]
+#[derive(Serialize, JsonSchema, ApiComponent, Deserialize, Debug, Clone)]
 pub struct ShortenRequest {
     pub url: String,
 }
@@ -17,7 +18,7 @@ impl ShortenRequest {
 }
 
 /// Response payload containing the shortened URL.
-#[derive(Serialize)]
+#[derive(Serialize, JsonSchema, ApiComponent, Deserialize, Debug, Clone)]
 pub struct ShortenResponse {
     pub short_url: String,
 }

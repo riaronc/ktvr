@@ -1,24 +1,59 @@
 // src/routes/mod.rs
+//
+// use actix_web::web;
+// use crate::handlers::{
+//     shorten_url,
+//     redirect,
+//     health_check,
+// };
+// use apistos::web::ServiceConfig;
+// use apistos::web::{resource, get, scope, post};
+//
+// pub fn config(cfg: &mut ServiceConfig) {
+//     cfg
+//         .service(
+//             scope("/links")
+//                 .service(
+//                     resource("/").route(get().to(health_check)),
+//                 )
+//                 .service(
+//                     resource("/{id}}").route(get().to(health_check))
+//                 )
+//         )
+//         .service(
+//             resource("/shorten")
+//                 .route(post().to(shorten_url))
+//         )
+//         .service(
+//             resource("/health_check")
+//                 .route(get().to(health_check))
+//         )
+//         .service(
+//             resource("/{short_id}")
+//                 .route(get().to(redirect))
+//         );
+// }
 
-use actix_web::web;
 use crate::handlers::{
-    shorten_url,
-    redirect,
-    health_check,
+    redirect, health_check, shorten_url,
 };
+use apistos::web::{delete, get, post, put, resource, scope, Scope};
 
-pub fn config(cfg: &mut web::ServiceConfig) {
-    cfg.service(
-        web::resource("/shorten")
-            .route(web::post().to(shorten_url))
-    )
+pub(crate) fn routes() -> Scope {
+    scope("")
         .service(
-            web::resource("/health_check")
-                .route(web::get().to(health_check))
+            scope("shorten")
+                .service(
+                    resource("")
+                        .route(post().to(shorten_url))
+                )
         )
         .service(
-            web::resource("/{short_id}")
-                .route(web::get().to(redirect))
-        );
+            resource("health_check").route(get().to(health_check))
+        )
+        .service(
+            resource("{short_id}")
+                .route(get().to(redirect))
+        )
 
 }
