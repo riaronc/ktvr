@@ -2,6 +2,9 @@
 
 mod config;
 mod models;
+
+use crate::models::*;
+
 mod handlers;
 mod services;
 mod routes;
@@ -30,8 +33,8 @@ use apistos::web::{get, post, resource, scope};
 use env_logger::Logger;
 use crate::models::ShortenResponse;
 use apistos::info::{Contact, Info, License};
-use apistos::paths::ExternalDocumentation;
-
+use apistos::paths::{ExternalDocumentation, PathItem};
+use apistos::OpenApi;
 use apistos::SwaggerUIConfig;
 use apistos::tag::Tag;
 async fn load_env() -> () {
@@ -98,28 +101,13 @@ async fn main() -> Result<(), impl Error> {
                     description: Some("Everything about petstore".to_string()),
                     ..Default::default()
                 },
-                Tag {
-                    name: "pet".to_string(),
-                    description: Some("Everything about your Pets".to_string()),
-                    ..Default::default()
-                },
-                Tag {
-                    name: "store".to_string(),
-                    description: Some("Access to Petstore orders".to_string()),
-                    ..Default::default()
-                },
-                Tag {
-                    name: "user".to_string(),
-                    description: Some("Operations about user".to_string()),
-                    ..Default::default()
-                },
             ],
             info: Info {
-                title: "Swagger Petstore - OpenAPI 3.0".to_string(),
-                description: Some("This is a sample Pet Store Server based on the OpenAPI 3.0 specification.  You can find out more about\nSwagger at [http://swagger.io](http://swagger.io). In the third iteration of the pet store, we've switched to the design first approach!\nYou can now help us improve the API whether it's by making changes to the definition itself or to the code.\nThat way, with time, we can improve the API in general, and expose some of the new features in OAS3.\n\nSome useful links:\n- [The Pet Store repository](https://github.com/swagger-api/swagger-petstore)\n- [The source API definition for the Pet Store](https://github.com/swagger-api/swagger-petstore/blob/master/src/main/resources/openapi.yaml)".to_string()),
+                title: "KTVR Swagger - OpenAPI 3.0".to_string(),
+                description: Some("Description".to_string()),
                 terms_of_service: Some("http://swagger.io/terms/".to_string()),
                 contact: Some(Contact {
-                    email: Some("apiteam@swagger.io".to_string()),
+                    email: Some("riaronc@gmail.com".to_string()),
                     ..Default::default()
                 }),
                 license: Some(License {
@@ -135,22 +123,25 @@ async fn main() -> Result<(), impl Error> {
                 url: "http://swagger.io".to_string(),
                 ..Default::default()
             }),
-            servers: vec![Server { url: "/api/v3".to_string(), ..Default::default() }],
+
+            servers: vec![Server { url: "/api/v1".to_string(), ..Default::default() }],
             ..Default::default()
         };
+
 
         App::new()
             .document(spec)
             .app_data(web::Data::new(url_service.clone()))
             .app_data(web::Data::new(config.host_url.clone()))
-            // .configure(routes::config)
-            .build("/openapi.json")
-            .service(
-                routes::routes()
-            )
+            .configure(routes::config)
 
-            // .wrap(ActixLogger::default())
+            .build_with(
+            "/openapi.json/",
+            apistos::app::BuildConfig::default()
+                .with(SwaggerUIConfig::new(&"/docs/")),
+        )
 
+            .wrap(ActixLogger::default())
     })
         .bind("0.0.0.0:8080")?
         .run()

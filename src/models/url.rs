@@ -5,7 +5,8 @@ use url::Url;
 use schemars::JsonSchema;
 use apistos::ApiComponent;
 /// Request payload for shortening a URL.
-#[derive(Serialize, JsonSchema, ApiComponent, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, JsonSchema, ApiComponent)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ShortenRequest {
     pub url: String,
 }
@@ -18,7 +19,8 @@ impl ShortenRequest {
 }
 
 /// Response payload containing the shortened URL.
-#[derive(Serialize, JsonSchema, ApiComponent, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, JsonSchema, ApiComponent)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ShortenResponse {
     pub short_url: String,
 }

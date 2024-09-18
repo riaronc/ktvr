@@ -6,41 +6,11 @@
 //     redirect,
 //     health_check,
 // };
-// use apistos::web::ServiceConfig;
+use apistos::web::ServiceConfig;
 // use apistos::web::{resource, get, scope, post};
 //
-// pub fn config(cfg: &mut ServiceConfig) {
-//     cfg
-//         .service(
-//             scope("/links")
-//                 .service(
-//                     resource("/").route(get().to(health_check)),
-//                 )
-//                 .service(
-//                     resource("/{id}}").route(get().to(health_check))
-//                 )
-//         )
-//         .service(
-//             resource("/shorten")
-//                 .route(post().to(shorten_url))
-//         )
-//         .service(
-//             resource("/health_check")
-//                 .route(get().to(health_check))
-//         )
-//         .service(
-//             resource("/{short_id}")
-//                 .route(get().to(redirect))
-//         );
-// }
-
-use crate::handlers::{
-    redirect, health_check, shorten_url,
-};
-use apistos::web::{delete, get, post, put, resource, scope, Scope};
-
-pub(crate) fn routes() -> Scope {
-    scope("")
+pub fn config(cfg: &mut ServiceConfig) {
+    cfg
         .service(
             scope("shorten")
                 .service(
@@ -51,9 +21,19 @@ pub(crate) fn routes() -> Scope {
         .service(
             resource("health_check").route(get().to(health_check))
         )
+
+
         .service(
             resource("{short_id}")
                 .route(get().to(redirect))
-        )
+        );
+}
 
+use crate::handlers::{
+    redirect, health_check, shorten_url,
+};
+use apistos::web::{delete, get, post, put, resource, scope, Scope};
+
+pub(crate) fn routes() -> Scope {
+    scope("")
 }

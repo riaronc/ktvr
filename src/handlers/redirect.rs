@@ -6,7 +6,13 @@ use crate::errors::ServiceError;
 use log::{info, debug, error};
 use apistos::{api_operation, ApiComponent};
 
-#[api_operation(summary = "Redirect a given URL")]
+#[api_operation(
+    tag = "api",
+    summary = "Redirector",
+    description = r###"Redirects you to the
+  Plop"###,
+    error_code = 200
+)]
 pub async fn redirect(
     url_service: web::Data<UrlService>,
     path: web::Path<String>,

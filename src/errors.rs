@@ -1,8 +1,9 @@
 // src/errors.rs
 
 use actix_web::{HttpResponse, ResponseError};
-use serde::Serialize;
-use std::fmt;
+use serde::{Deserialize, Serialize};
+use std::{fmt, io};
+use apistos::ApiErrorComponent;
 
 /// Struct for error responses.
 #[derive(Debug, Serialize)]
