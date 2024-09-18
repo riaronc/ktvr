@@ -1,3 +1,10 @@
+mod link;
+
+use crate::handlers::{
+    health_check, redirect,
+};
+use apistos::web::{get, post, resource, scope, Scope};
+
 // src/routes/mod.rs
 //
 // use actix_web::web;
@@ -12,10 +19,10 @@ use apistos::web::ServiceConfig;
 pub fn config(cfg: &mut ServiceConfig) {
     cfg
         .service(
-            scope("shorten")
+            scope("/api")
                 .service(
-                    resource("")
-                        .route(post().to(shorten_url))
+                    resource("/shorten")
+                        .route(post().to(link::create_link))
                 )
         )
         .service(
@@ -27,13 +34,4 @@ pub fn config(cfg: &mut ServiceConfig) {
             resource("{short_id}")
                 .route(get().to(redirect))
         );
-}
-
-use crate::handlers::{
-    redirect, health_check, shorten_url,
-};
-use apistos::web::{delete, get, post, put, resource, scope, Scope};
-
-pub(crate) fn routes() -> Scope {
-    scope("")
 }

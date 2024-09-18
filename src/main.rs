@@ -10,60 +10,39 @@ mod services;
 mod routes;
 mod utils;
 mod errors;
+
 use crate::handlers::{
-    shorten_url,
-    redirect,
     health_check,
+    redirect,
+    shorten_url,
 };
-use actix_web::{web, App, HttpServer};
 use actix_web::middleware::Logger as ActixLogger;
+use actix_web::{web, App, HttpServer};
+use apistos::app::OpenApiWrapper;
+use apistos::info::{Contact, Info, License};
+use apistos::paths::{ExternalDocumentation, PathItem};
+use apistos::server::Server;
+use apistos::spec::Spec;
+use apistos::tag::Tag;
+use apistos::web::{get, post, resource, scope};
+use apistos::OpenApi;
+use apistos::SwaggerUIConfig;
+use config::Config;
 use dotenvy::dotenv;
-use dotenvy;
+use log::{error, info};
+use redis::aio::MultiplexedConnection;
+use services::UrlService;
+use sqlx::PgPool;
 use std::env;
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use redis::aio::MultiplexedConnection;
-use services::UrlService;
-use config::Config;
-use log::{info, error};
-use apistos::app::OpenApiWrapper;
-use apistos::server::Server;
-use apistos::spec::Spec;
-use apistos::web::{get, post, resource, scope};
-use env_logger::Logger;
-use crate::models::ShortenResponse;
-use apistos::info::{Contact, Info, License};
-use apistos::paths::{ExternalDocumentation, PathItem};
-use apistos::OpenApi;
-use apistos::SwaggerUIConfig;
-use apistos::tag::Tag;
-async fn load_env() -> () {
-    dotenv().ok();
+// Import PgPool from SQLx
 
-    // Determine the current environment
-    let app_env = env::var("APP_ENV").unwrap_or_else(|_| "development".to_string());
-
-    // Load the appropriate .env file based on APP_ENV
-    match app_env.as_str() {
-        "prod" => {
-            dotenvy::from_filename(".env.prod").ok();
-        }
-        "dev" => {
-            dotenvy::from_filename(".env.dev").ok();
-        }
-        _ => {
-            dotenvy::from_filename(".env").ok();
-        }
-    }
-
-    // Initialize the logger
-    env_logger::init();
-}
 use std::error::Error;
 
 #[actix_web::main]
-async fn main() -> Result<(), impl Error> {
-    // Initialize environment variables from .env file
+async fn main() -> Result<(), Box<dyn Error>> {
+    // Load environment variables from .env file
     dotenv().ok();
 
     // Initialize the logger
@@ -80,6 +59,7 @@ async fn main() -> Result<(), impl Error> {
             std::process::exit(1);
         }
     };
+    info!("Connected to Redis: {}", config.redis_url);
 
     // Initialize UrlService with Redis connection, key prefix, and expiration time
     let url_service = UrlService::new(
@@ -88,23 +68,38 @@ async fn main() -> Result<(), impl Error> {
         7 * 24 * 60 * 60, // 7 days in seconds
     );
 
+    // Establish PostgreSQL connection pool
+    let pg_pool = match establish_postgres_connection().await {
+        Ok(pool) => Arc::new(pool),
+        Err(e) => {
+            error!("Failed to connect to PostgreSQL: {}", e);
+            std::process::exit(1);
+        }
+    };
+    info!("Connected to PostgreSQL database");
+
+    // Clone pool and other shared data for use in the closure
+    let pg_pool_clone = pg_pool.clone();
+    let url_service_clone = url_service.clone();
+    let host_url = config.host_url.clone();
+
     // Start HTTP server
     info!("Starting server at {}", config.host_url);
 
-
     HttpServer::new(move || {
+        // Define OpenAPI specification
         let spec = Spec {
             default_tags: vec!["api".to_owned()],
             tags: vec![
                 Tag {
                     name: "api".to_string(),
-                    description: Some("Everything about petstore".to_string()),
+                    description: Some("API Endpoints".to_string()),
                     ..Default::default()
                 },
             ],
             info: Info {
                 title: "KTVR Swagger - OpenAPI 3.0".to_string(),
-                description: Some("Description".to_string()),
+                description: Some("A URL Shortener Service".to_string()),
                 terms_of_service: Some("http://swagger.io/terms/".to_string()),
                 contact: Some(Contact {
                     email: Some("riaronc@gmail.com".to_string()),
@@ -123,35 +118,51 @@ async fn main() -> Result<(), impl Error> {
                 url: "http://swagger.io".to_string(),
                 ..Default::default()
             }),
-
-            servers: vec![Server { url: "/api/v1".to_string(), ..Default::default() }],
+            servers: vec![
+                Server { url: "/api/v1".to_string(), ..Default::default() },
+            ],
             ..Default::default()
         };
 
-
         App::new()
             .document(spec)
-            .app_data(web::Data::new(url_service.clone()))
-            .app_data(web::Data::new(config.host_url.clone()))
+            // Add PgPool to application data
+            .app_data(web::Data::new(pg_pool_clone.clone()))
+            // Add UrlService to application data
+            .app_data(web::Data::new(url_service_clone.clone()))
+            // Add host_url to application data
+            .app_data(web::Data::new(host_url.clone()))
+            // Configure routes
             .configure(routes::config)
+            // Integrate Apistos Swagger UI
 
-            .build_with(
-            "/openapi.json/",
-            apistos::app::BuildConfig::default()
-                .with(SwaggerUIConfig::new(&"/docs/")),
-        )
-
+            // Add Actix Web Logger middleware
             .wrap(ActixLogger::default())
+            .build_with(
+                "/openapi.json/",
+                apistos::app::BuildConfig::default()
+                    .with(SwaggerUIConfig::new(&"/docs/")),
+            )
     })
         .bind("0.0.0.0:8080")?
         .run()
-        .await
+        .await?;
+
+    Ok(())
 }
 
 /// Establishes a Redis connection using the provided Redis URL.
 /// Returns a MultiplexedConnection on success.
 async fn establish_redis_connection(redis_url: &str) -> redis::RedisResult<MultiplexedConnection> {
-    info!("Trying establish Redis by URL: {}",  redis_url);
+    info!("Trying to establish Redis connection with URL: {}", redis_url);
     let client = redis::Client::open(redis_url)?;
     client.get_multiplexed_tokio_connection().await
+}
+
+/// Establishes a PostgreSQL connection pool using the DATABASE_URL from the environment.
+/// Returns a PgPool on success.
+async fn establish_postgres_connection() -> Result<PgPool, sqlx::Error> {
+    let database_url = env::var("DATABASE_URL")
+        .expect("DATABASE_URL must be set in .env file");
+    PgPool::connect(&database_url).await
 }
